@@ -217,3 +217,17 @@ cargo test
 ```
 
 `.github/workflows/ci.yml` lists every check that CI runs.
+
+## Install
+
+From a checkout of this repository:
+
+```sh
+cargo install --path .
+```
+
+The supported target is macOS on Apple Silicon, which CI runs on.
+
+## License
+
+[MIT](LICENSE)
