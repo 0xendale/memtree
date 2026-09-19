@@ -1,5 +1,9 @@
 # memtree
 
+[![CI](https://github.com/0xendale/memtree/actions/workflows/ci.yml/badge.svg)](https://github.com/0xendale/memtree/actions/workflows/ci.yml)
+[![v0.1.0](https://img.shields.io/github/v/tag/0xendale/memtree?label=version&sort=semver)](https://github.com/0xendale/memtree/releases/tag/v0.1.0)
+[![MIT](https://img.shields.io/github/license/0xendale/memtree)](LICENSE)
+
 memtree checks, indexes, and diffs a markdown memory store: a directory tree of notes with
 frontmatter, `[[name]]` links between them, and a `MEMORY.md` index with one line per note.
 
