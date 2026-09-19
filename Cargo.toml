@@ -5,6 +5,9 @@ edition = "2024"
 rust-version = "1.88.0"
 publish = false
 description = "Check, index, and diff a markdown memory store: notes with frontmatter, [[links]], and a MEMORY.md index."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/0xendale/memtree"
 
 [lints.rust]
 unsafe_code = "forbid"
