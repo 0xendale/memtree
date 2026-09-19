@@ -12,6 +12,7 @@ const USAGE: &str = "\
 usage: memtree check [--root DIR]
        memtree index [--root DIR]
        memtree affected --base REF [--root DIR]
+       memtree links [--root DIR] [NAME...]
        memtree help | --version
 ";
 
@@ -22,6 +23,7 @@ frontmatter, [[name]] links, and a MEMORY.md index.
 usage: memtree check [--root DIR]
        memtree index [--root DIR]
        memtree affected --base REF [--root DIR]
+       memtree links [--root DIR] [NAME...]
        memtree help | --version
 
 commands:
@@ -30,6 +32,8 @@ commands:
             keeping every existing line
   affected  list the notes added, changed, or deleted since the merge base,
             and the notes that link to them; writes nothing
+  links     name every note, or list the links that target a given name;
+            writes nothing
 
 options:
   --root DIR     the store root (default: the current directory)

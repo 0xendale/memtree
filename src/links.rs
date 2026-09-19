@@ -1,5 +1,7 @@
 //! `[[name]]` links in a note's body.
 
+use std::collections::BTreeSet;
+
 /// A link to another note, by name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Link {
@@ -7,6 +9,19 @@ pub struct Link {
     pub target: String,
     /// 1-based line of the link.
     pub line: usize,
+}
+
+/// The links of one note, once per position (path, line, name).
+///
+/// A repeated `[[name]]` on the same line is one occurrence for reporting; the count of raw
+/// links is still every found link.
+#[must_use]
+pub fn dedup_by_position(links: &[Link]) -> Vec<&Link> {
+    let mut unique = BTreeSet::new();
+    links
+        .iter()
+        .filter(|link| unique.insert((&link.target, link.line)))
+        .collect()
 }
 
 /// Extracts the links in `text`, ignoring its first `skip` lines (the frontmatter block).

@@ -12,6 +12,7 @@ use memtree::affected::{self, Reason};
 use memtree::check::check;
 use memtree::finding::Severity;
 use memtree::index::{self, Update};
+use memtree::links;
 use memtree::store::{self, INDEX_FILE};
 
 /// Exit status when the store has errors.
@@ -25,6 +26,7 @@ const USAGE_TEXT: &str = "\
 usage: memtree check [--root DIR]
        memtree index [--root DIR]
        memtree affected --base REF [--root DIR]
+       memtree links [--root DIR] [NAME...]
        memtree help | --version";
 
 /// What `memtree help` prints before the usage.
@@ -40,6 +42,8 @@ commands:
             keeping every existing line
   affected  list the notes added, changed, or deleted since the merge base,
             and the notes that link to them; writes nothing
+  links     name every note, or list the links that target a given name;
+            writes nothing
 
 options:
   --root DIR     the store root (default: the current directory)
@@ -55,6 +59,7 @@ enum Command {
     Check { root: PathBuf },
     Index { root: PathBuf },
     Affected { root: PathBuf, base: String },
+    Links { root: PathBuf, names: Vec<String> },
 }
 
 fn main() -> ExitCode {
@@ -102,11 +107,44 @@ fn parse(args: &[OsString]) -> Result<Command, String> {
                 base: base.to_owned(),
             })
         }
+        "links" => {
+            let (root, names) = links_arguments(rest)?;
+            Ok(Command::Links { root, names })
+        }
         other if other.starts_with('-') => {
             Err(format!("unknown option `{}`", split_inline(other).0))
         }
         other => Err(format!("unknown command `{other}`")),
     }
+}
+
+/// Parses `links`'s arguments: `--root DIR` (at most once) plus NAME positionals that never
+/// start with `-`, in the order they were given.
+fn links_arguments(args: &[&str]) -> Result<(PathBuf, Vec<String>), String> {
+    let mut root: Option<&str> = None;
+    let mut names = Vec::new();
+    let mut rest = args.iter().copied();
+    while let Some(arg) = rest.next() {
+        let (flag, inline) = split_inline(arg);
+        if flag == "--root" && arg.starts_with("--") {
+            let value = match inline {
+                Some(value) => value,
+                None => rest.next().unwrap_or_default(),
+            };
+            if value.is_empty() {
+                return Err("`--root` needs a value".to_owned());
+            }
+            if root.replace(value).is_some() {
+                return Err("`--root` is given more than once".to_owned());
+            }
+            continue;
+        }
+        if arg.starts_with('-') && arg.len() > 1 {
+            return Err(format!("unknown option `{flag}`"));
+        }
+        names.push(arg.to_owned());
+    }
+    Ok((PathBuf::from(root.unwrap_or(".")), names))
 }
 
 /// `help` and `--version` take no arguments.
@@ -167,6 +205,7 @@ fn run(command: &Command) -> u8 {
         Command::Check { root } => run_check(root),
         Command::Index { root } => run_index(root),
         Command::Affected { root, base } => run_affected(root, base),
+        Command::Links { root, names } => run_links(root, names),
     }
 }
 
@@ -176,6 +215,49 @@ fn run_print(text: &str) -> u8 {
         Ok(()) => 0,
         Err(status) => status,
     }
+}
+
+/// Lists every `name path` pair, or every link line that targets one of `names`.
+fn run_links(root: &Path, names: &[String]) -> u8 {
+    let store = match store::load(root) {
+        Ok(store) => store,
+        Err(error) => return fail(format_args!("{error}")),
+    };
+    let wanted: BTreeSet<&str> = names.iter().map(String::as_str).collect();
+    let mut lines: Vec<String> = Vec::new();
+    if wanted.is_empty() {
+        for note in &store.notes {
+            if let Some((name, _)) = &note.name {
+                lines.push(format!("{name} {}", note.path));
+            }
+        }
+    } else {
+        for note in &store.notes {
+            for link in links::dedup_by_position(&note.links) {
+                if wanted.contains(link.target.as_str()) {
+                    lines.push(format!(
+                        "{}:{}: links to [[{}]]",
+                        note.path, link.line, link.target
+                    ));
+                }
+            }
+        }
+    }
+    lines.sort();
+    if let Err(status) = print_lines(&lines) {
+        return status;
+    }
+    let links_counted = if wanted.is_empty() {
+        store.notes.iter().map(|note| note.links.len()).sum()
+    } else {
+        lines.len()
+    };
+    report(format_args!(
+        "links over {}: {}",
+        count(store.notes.len(), "note"),
+        count(links_counted, "link")
+    ));
+    0
 }
 
 fn run_check(root: &Path) -> u8 {

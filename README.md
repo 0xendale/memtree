@@ -8,6 +8,8 @@ frontmatter, `[[name]]` links between them, and a `MEMORY.md` index with one lin
   every existing line.
 - `memtree affected --base REF` lists the notes added, changed, or deleted since the merge base of
   `REF` and `HEAD`, and the notes that link to them. It writes nothing.
+- `memtree links [NAME...]` names every note, or lists the note lines that link to a given name.
+  It writes nothing.
 
 ## Example
 
@@ -134,9 +136,10 @@ whole file. Findings are sorted by path, then line (whole-file findings first), 
 
 ## Commands
 
-`check`, `index`, and `affected` take `--root DIR`, the store root, which defaults to the current
-directory. An option can be written `--name VALUE` or `--name=VALUE`, at most once. `memtree help`
-prints the usage and these options; `memtree --version` prints the version.
+`check`, `index`, `affected`, and `links` take `--root DIR`, the store root, which defaults to the
+current directory. An option can be written `--name VALUE` or `--name=VALUE`, at most once. `links`
+also takes NAME arguments, which never start with `-`. `memtree help` prints the usage and these
+options; `memtree --version` prints the version.
 
 ### `memtree check [--root DIR]`
 
@@ -180,6 +183,19 @@ and paths print relative to it.
   prompts.
 - A `REF` starting with `-` is a usage error. The exit status is 3 when the root is not in a Git
   work tree, when `REF` does not name a commit, or when it has no merge base with `HEAD`.
+
+### `memtree links [--root DIR] [NAME...]`
+
+Without NAME arguments, prints `name path` for every note that has a name, sorted by name. With
+one or more NAME arguments, prints for each given name every note path and 1-based line that
+holds a `[[name]]` link to it, as `path:line: links to [[name]]`, sorted by path then line, once
+per path, line, and name. A name nothing links to produces no lines and is not an error. Links
+inside fenced code blocks and inline code spans do not count, exactly as `check` counts them.
+
+It writes nothing. stderr ends with `memtree: links over N notes: M links`, where N is the number
+of notes and M is the number of links found in the store when no NAME is given, and the number of
+printed lines when NAMEs are given. The exit status is 0 on success, 2 on a usage error, and 3 on
+failure.
 
 ## Exit status
 
